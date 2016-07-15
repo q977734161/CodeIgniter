@@ -224,6 +224,8 @@ switch (ENVIRONMENT)
  * BASEPATH:system目录的真实路径
  * FCPATH:前端controller文件路径
  * SYSDIR:BASEPATH目录真实名称
+ * APPPATH:controller文件夹路径
+ * VIEWPATH:视图文件路径
  * -------------------------------------------------------------------
  *  Now that we know the path, set the main path constants
  * -------------------------------------------------------------------
