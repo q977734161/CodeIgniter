@@ -60,6 +60,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /*
  * ------------------------------------------------------
  *  Load the framework constants
+ *  加载框架constants信息，先检查生产环境下即 controller/config/development/
+ *     controller/config/testing
+ *     controller/config/production
+ *     文件夹下的constants.php的文件最后加载controller/config/文件夹下的
+ *  constants.php中使用defined定义各种常量
  * ------------------------------------------------------
  */
 	if (file_exists(APPPATH.'config/'.ENVIRONMENT.'/constants.php'))
@@ -72,6 +77,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 /*
  * ------------------------------------------------------
  *  Load the global functions
+ *  加载全局函数
  * ------------------------------------------------------
  */
 	require_once(BASEPATH.'core/Common.php');
@@ -114,7 +120,10 @@ if ( ! is_php('5.4'))
 			{
 				continue;
 			}
-
+			/**
+			 * 如果register_globals 开启，会将$_ENV,$_GET等这些变量x的值设置为全局变量
+			 * 检查x是否为全局变量是的话过滤，不是既保留,只保留$_protected中的变量
+			 */
 			foreach (array_keys($$superglobal) as $var)
 			{
 				if (isset($GLOBALS[$var]) && ! in_array($var, $_protected, TRUE))
@@ -126,10 +135,48 @@ if ( ! is_php('5.4'))
 	}
 }
 
+/*
+ *----------------------改进的建议----------------------------- 
+ * 能否将$_protected改成如下格式数组
+	if ((bool) ini_get('register_globals'))
+	{
+		$_protected = array(
+			'_SERVER'=>true,
+			'_GET'=>true,
+			'_POST'=>true,
+			'_FILES'=>true,
+			'_REQUEST'=>true,
+			'_SESSION'=>true,
+			'_ENV'=>true,
+			'_COOKIE'=>true,
+			'GLOBALS'=>true,
+			'HTTP_RAW_POST_DATA'=>true,
+			'system_path'=>true,
+			'application_folder'=>true,
+			'view_folder'=>true,
+			'_protected'=>true,
+			'_registered'=>true,
+		);
+
+		查找的时候使用array_key_exists,查找key的值会比查找value快很多
+			foreach (array_keys($$superglobal) as $var)
+			{
+				if (isset($GLOBALS[$var]) && ! array_key_exists($var, $_protected))
+				{
+					$GLOBALS[$var] = NULL;
+				}
+			}
+		}
+
+ * 
+ */
+
+
 
 /*
  * ------------------------------------------------------
  *  Define a custom error handler so we can log PHP errors
+ *  设置异常，错误，关闭自定义函数，相关函数在Common.php中
  * ------------------------------------------------------
  */
 	set_error_handler('_error_handler');
@@ -139,6 +186,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Set the subclass_prefix
+ *  检查是否设置类的前缀
  * ------------------------------------------------------
  *
  * Normally the "subclass_prefix" is set in the config file.
@@ -160,6 +208,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Should we use a Composer autoloader?
+ *  是否使用第三方类自动加载文件
  * ------------------------------------------------------
  */
 	if ($composer_autoload = config_item('composer_autoload'))
@@ -183,6 +232,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Start the timer... tick tock tick tock...
+ *  加载性能测试类，设置开始加载的时间
  * ------------------------------------------------------
  */
 	$BM =& load_class('Benchmark', 'core');
@@ -192,6 +242,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Instantiate the hooks class
+ *  加载系统钩子
  * ------------------------------------------------------
  */
 	$EXT =& load_class('Hooks', 'core');
@@ -199,6 +250,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Is there a "pre_system" hook?
+ *  调用pre_system钩子，执行系统初始化前的工作
  * ------------------------------------------------------
  */
 	$EXT->call_hook('pre_system');
@@ -211,6 +263,7 @@ if ( ! is_php('5.4'))
  * Note: It is important that Config is loaded first as
  * most other classes depend on it either directly or by
  * depending on another class that uses it.
+ * 加载系统配置
  *
  */
 	$CFG =& load_class('Config', 'core');
@@ -227,6 +280,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  * Important charset-related stuff
+ * 导入文字编码相关
  * ------------------------------------------------------
  *
  * Configure mbstring and/or iconv if they are enabled
@@ -278,6 +332,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Load compatibility features
+ *  加载通用特性
  * ------------------------------------------------------
  */
 
@@ -289,6 +344,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Instantiate the UTF-8 class
+ *  初始化utf-8类
  * ------------------------------------------------------
  */
 	$UNI =& load_class('Utf8', 'core');
@@ -296,6 +352,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Instantiate the URI class
+ *  初始化uri类
  * ------------------------------------------------------
  */
 	$URI =& load_class('URI', 'core', $CFG);
@@ -303,6 +360,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Instantiate the routing class and set the routing
+ *  初始化路由类
  * ------------------------------------------------------
  */
 	$RTR =& load_class('Router', 'core', isset($routing) ? $routing : NULL);
@@ -310,6 +368,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Instantiate the output class
+ *  初始化output类
  * ------------------------------------------------------
  */
 	$OUT =& load_class('Output', 'core');
@@ -334,6 +393,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Load the Input class and sanitize globals
+ *  初始化input类
  * ------------------------------------------------------
  */
 	$IN	=& load_class('Input', 'core');
@@ -341,6 +401,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Load the Language class
+ *  初始化语言类
  * ------------------------------------------------------
  */
 	$LANG =& load_class('Lang', 'core');
@@ -348,6 +409,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Load the app controller and local controller
+ *  加载controller类
  * ------------------------------------------------------
  *
  */
@@ -359,6 +421,11 @@ if ( ! is_php('5.4'))
 	 *
 	 * Returns current CI instance object
 	 *
+	 * 获取框架controller实例
+	 * CI_Controller单例模式
+	 * 1.初始化所有已经加载的类，该类名的小写格式为controller的成员变量
+	 * 2.设置类加载工具$this->load
+	 * 3.初始化要自动加载的类
 	 * @return CI_Controller
 	 */
 	function &get_instance()
@@ -393,6 +460,11 @@ if ( ! is_php('5.4'))
  *  Furthermore, none of the methods in the app controller
  *  or the loader class can be called via the URI, nor can
  *  controller methods that begin with an underscore.
+ *  
+ *  1.第一次请求跳转到系统指定的controller中，没有指定404
+ *  2.根据请求url解析出要跳转的controller及method
+ *  
+ *  
  */
 
 	$e404 = FALSE;
@@ -485,6 +557,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Is there a "pre_controller" hook?
+ *  在实例化controller之前要执行的工作
  * ------------------------------------------------------
  */
 	$EXT->call_hook('pre_controller');
@@ -502,6 +575,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Is there a "post_controller_constructor" hook?
+ *  在controller实例化执行方法前的工作
  * ------------------------------------------------------
  */
 	$EXT->call_hook('post_controller_constructor');
@@ -509,6 +583,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Call the requested method
+ *  调用controller方法
  * ------------------------------------------------------
  */
 	call_user_func_array(array(&$CI, $method), $params);
@@ -519,6 +594,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Is there a "post_controller" hook?
+ *  controller方法执行完成后的工作
  * ------------------------------------------------------
  */
 	$EXT->call_hook('post_controller');
@@ -536,6 +612,7 @@ if ( ! is_php('5.4'))
 /*
  * ------------------------------------------------------
  *  Is there a "post_system" hook?
+ *  所有工作完成以后要执行的工作
  * ------------------------------------------------------
  */
 	$EXT->call_hook('post_system');
