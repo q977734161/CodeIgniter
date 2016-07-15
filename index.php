@@ -316,7 +316,8 @@ switch (ENVIRONMENT)
  * --------------------------------------------------------------------
  * LOAD THE BOOTSTRAP FILE
  * --------------------------------------------------------------------
- *
+ * 框架核心加载文件
  * And away we go...
  */
+
 require_once BASEPATH.'core/CodeIgniter.php';
