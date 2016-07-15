@@ -43,7 +43,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * This is the platform-independent result class.
  * This class will not be called directly. Rather, the adapter
  * class for the specific database will extend and instantiate it.
- *
+ * 数据库结果处理类
  * @category	Database
  * @author		EllisLab Dev Team
  * @link		https://codeigniter.com/user_guide/database/
@@ -52,56 +52,56 @@ class CI_DB_result {
 
 	/**
 	 * Connection ID
-	 *
+	 * 数据库连接
 	 * @var	resource|object
 	 */
 	public $conn_id;
 
 	/**
 	 * Result ID
-	 *
+	 * 查询结果
 	 * @var	resource|object
 	 */
 	public $result_id;
 
 	/**
 	 * Result Array
-	 *
+	 * 查询结果的数组
 	 * @var	array[]
 	 */
 	public $result_array			= array();
 
 	/**
 	 * Result Object
-	 *
+	 * 查询结果对象数组
 	 * @var	object[]
 	 */
 	public $result_object			= array();
 
 	/**
 	 * Custom Result Object
-	 *
+	 * 自定义查询结果对象数组
 	 * @var	object[]
 	 */
 	public $custom_result_object		= array();
 
 	/**
 	 * Current Row index
-	 *
+	 * 结果当前的行数
 	 * @var	int
 	 */
 	public $current_row			= 0;
 
 	/**
 	 * Number of rows
-	 *
+	 * 查询结果条数
 	 * @var	int
 	 */
 	public $num_rows;
 
 	/**
 	 * Row data
-	 *
+	 * 查询结果行数据（用于缓存当前查询的数据）
 	 * @var	array
 	 */
 	public $row_data;
@@ -110,7 +110,7 @@ class CI_DB_result {
 
 	/**
 	 * Constructor
-	 *
+	 * 依据qurey结果初始化数据库连接和查询结果
 	 * @param	object	$driver_object
 	 * @return	void
 	 */
@@ -124,7 +124,7 @@ class CI_DB_result {
 
 	/**
 	 * Number of rows in the result set
-	 *
+	 * 返回查询结果条数
 	 * @return	int
 	 */
 	public function num_rows()
@@ -149,7 +149,7 @@ class CI_DB_result {
 
 	/**
 	 * Query result. Acts as a wrapper function for the following functions.
-	 *
+	 * 依据类型返回指定形式的查询结果
 	 * @param	string	$type	'object', 'array' or a custom class name
 	 * @return	array
 	 */
@@ -173,7 +173,7 @@ class CI_DB_result {
 
 	/**
 	 * Custom query result.
-	 *
+	 * 自定义数据查询结果，依据自定义类返回相应的数据
 	 * @param	string	$class_name
 	 * @return	array
 	 */
@@ -229,7 +229,7 @@ class CI_DB_result {
 
 	/**
 	 * Query result. "object" version.
-	 *
+	 * 查询结果已对象形式返回
 	 * @return	array
 	 */
 	public function result_object()
@@ -270,7 +270,7 @@ class CI_DB_result {
 
 	/**
 	 * Query result. "array" version.
-	 *
+	 * 查询结果以数组形式返回
 	 * @return	array
 	 */
 	public function result_array()
@@ -313,7 +313,7 @@ class CI_DB_result {
 	 * Row
 	 *
 	 * A wrapper method.
-	 *
+	 * 依据类型和当前行数返回当前行的数组或者对象形式
 	 * @param	mixed	$n
 	 * @param	string	$type	'object' or 'array'
 	 * @return	mixed
@@ -343,7 +343,7 @@ class CI_DB_result {
 
 	/**
 	 * Assigns an item into a particular column slot
-	 *
+	 * 将新的数值插入到查询结果中
 	 * @param	mixed	$key
 	 * @param	mixed	$value
 	 * @return	void
@@ -521,7 +521,7 @@ class CI_DB_result {
 
 	/**
 	 * Returns an unbuffered row and move pointer to next row
-	 *
+	 * 获取行数句，并使指针指向下一个数据，不缓存查询结果
 	 * @param	string	$type	'array', 'object' or a custom class name
 	 * @return	mixed
 	 */

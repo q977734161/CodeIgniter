@@ -47,6 +47,17 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @param 	string|string[]	$params
  * @param 	bool		$query_builder_override
  *				Determines if query builder should be used or not
+ *
+ * 根据/controller/config/database.php中的配置初始化数据库，返回数据库实例
+ * 1.获取数据库连接需要参数
+ * 2.定义CI_DB类作为要实例化目标数据库类的基类
+ * 3.使用query_builder的话CI_DB继承CI_DB_query_builder类，否则继承CI_DB_driver类
+ * 4.加载目标数据库驱动类
+ * 5.加载数据库结果处理类
+ * 6.实例化数据库并初始化
+ * 7.返回数据库实例
+ *
+ *
  */
 function &DB($params = '', $query_builder_override = NULL)
 {
