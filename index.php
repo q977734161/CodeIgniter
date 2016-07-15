@@ -219,6 +219,11 @@ switch (ENVIRONMENT)
 	}
 
 /*
+ * 定义各个环境路径
+ * SELF:本文件的真实路径
+ * BASEPATH:system目录的真实路径
+ * FCPATH:前端controller文件路径
+ * SYSDIR:BASEPATH目录真实名称
  * -------------------------------------------------------------------
  *  Now that we know the path, set the main path constants
  * -------------------------------------------------------------------
