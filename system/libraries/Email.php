@@ -6,7 +6,7 @@
  *
  * This content is released under the MIT License (MIT)
  *
- * Copyright (c) 2014 - 2015, British Columbia Institute of Technology
+ * Copyright (c) 2014 - 2016, British Columbia Institute of Technology
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,10 @@
  *
  * @package	CodeIgniter
  * @author	EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (http://ellislab.com/)
- * @copyright	Copyright (c) 2014 - 2015, British Columbia Institute of Technology (http://bcit.ca/)
+ * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
+ * @copyright	Copyright (c) 2014 - 2016, British Columbia Institute of Technology (http://bcit.ca/)
  * @license	http://opensource.org/licenses/MIT	MIT License
- * @link	http://codeigniter.com
+ * @link	https://codeigniter.com
  * @since	Version 1.0.0
  * @filesource
  */
@@ -46,7 +46,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * @subpackage	Libraries
  * @category	Libraries
  * @author		EllisLab Dev Team
- * @link		http://codeigniter.com/user_guide/libraries/email.html
+ * @link		https://codeigniter.com/user_guide/libraries/email.html
  */
 class CI_Email {
 
@@ -148,13 +148,6 @@ class CI_Email {
 	 * @var	string
 	 */
 	public $charset		= 'utf-8';
-
-	/**
-	 * Multipart message
-	 *
-	 * @var	string	'mixed' (in the body) or 'related' (separate)
-	 */
-	public $multipart	= 'mixed';		// "mixed" (in the body) or "related" (separate)
 
 	/**
 	 * Alternative message (for HTML messages only)
@@ -259,20 +252,6 @@ class CI_Email {
 	 * @var	string
 	 */
 	protected $_finalbody		= '';
-
-	/**
-	 * multipart/alternative boundary
-	 *
-	 * @var	string
-	 */
-	protected $_alt_boundary	= '';
-
-	/**
-	 * Attachment boundary
-	 *
-	 * @var	string
-	 */
-	protected $_atc_boundary	= '';
 
 	/**
 	 * Final headers to send
@@ -574,14 +553,18 @@ class CI_Email {
 			$this->validate_email($this->_str_to_array($replyto));
 		}
 
-		if ($name === '')
+		if ($name !== '')
 		{
-			$name = $replyto;
-		}
-
-		if (strpos($name, '"') !== 0)
-		{
-			$name = '"'.$name.'"';
+			// only use Q encoding if there are characters that would require it
+			if ( ! preg_match('/[\200-\377]/', $name))
+			{
+				// add slashes for non-printing characters, slashes, and double quotes, and surround it in double quotes
+				$name = '"'.addcslashes($name, "\0..\37\177'\"\\").'"';
+			}
+			else
+			{
+				$name = $this->_prep_q_encoding($name);
+			}
 		}
 
 		$this->set_header('Reply-To', $name.' <'.$replyto.'>');
@@ -762,7 +745,8 @@ class CI_Email {
 			'name'		=> array($file, $newname),
 			'disposition'	=> empty($disposition) ? 'attachment' : $disposition,  // Can also be 'inline'  Not sure if it matters
 			'type'		=> $mime,
-			'content'	=> chunk_split(base64_encode($file_content))
+			'content'	=> chunk_split(base64_encode($file_content)),
+			'multipart'	=> 'mixed'
 		);
 
 		return $this;
@@ -780,15 +764,11 @@ class CI_Email {
 	 */
 	public function attachment_cid($filename)
 	{
-		if ($this->multipart !== 'related')
-		{
-			$this->multipart = 'related'; // Thunderbird need this for inline images
-		}
-
 		for ($i = 0, $c = count($this->_attachments); $i < $c; $i++)
 		{
 			if ($this->_attachments[$i]['name'][0] === $filename)
 			{
+				$this->_attachments[$i]['multipart'] = 'related';
 				$this->_attachments[$i]['cid'] = uniqid(basename($this->_attachments[$i]['name'][0]).'@');
 				return $this->_attachments[$i]['cid'];
 			}
@@ -933,19 +913,6 @@ class CI_Email {
 	// --------------------------------------------------------------------
 
 	/**
-	 * Set Message Boundary
-	 *
-	 * @return	void
-	 */
-	protected function _set_boundaries()
-	{
-		$this->_alt_boundary = 'B_ALT_'.uniqid(''); // multipart/alternative
-		$this->_atc_boundary = 'B_ATC_'.uniqid(''); // attachment boundary
-	}
-
-	// --------------------------------------------------------------------
-
-	/**
 	 * Get the Message ID
 	 *
 	 * @return	string
@@ -1012,9 +979,9 @@ class CI_Email {
 	{
 		if ($this->mailtype === 'html')
 		{
-			return (count($this->_attachments) === 0) ? 'html' : 'html-attach';
+			return empty($this->_attachments) ? 'html' : 'html-attach';
 		}
-		elseif	($this->mailtype === 'text' && count($this->_attachments) > 0)
+		elseif	($this->mailtype === 'text' && ! empty($this->_attachments))
 		{
 			return 'plain-attach';
 		}
@@ -1320,7 +1287,6 @@ class CI_Email {
 			$this->_body = $this->word_wrap($this->_body);
 		}
 
-		$this->_set_boundaries();
 		$this->_write_headers();
 
 		$hdr = ($this->_get_protocol() === 'mail') ? $this->newline : '';
@@ -1328,7 +1294,7 @@ class CI_Email {
 
 		switch ($this->_get_content_type())
 		{
-			case 'plain' :
+			case 'plain':
 
 				$hdr .= 'Content-Type: text/plain; charset='.$this->charset.$this->newline
 					.'Content-Transfer-Encoding: '.$this->_get_encoding();
@@ -1345,7 +1311,7 @@ class CI_Email {
 
 				return;
 
-			case 'html' :
+			case 'html':
 
 				if ($this->send_multipart === FALSE)
 				{
@@ -1354,14 +1320,16 @@ class CI_Email {
 				}
 				else
 				{
-					$hdr .= 'Content-Type: multipart/alternative; boundary="'.$this->_alt_boundary.'"';
+					$boundary = uniqid('B_ALT_');
+					$hdr .= 'Content-Type: multipart/alternative; boundary="'.$boundary.'"';
 
 					$body .= $this->_get_mime_message().$this->newline.$this->newline
-						.'--'.$this->_alt_boundary.$this->newline
+						.'--'.$boundary.$this->newline
 
 						.'Content-Type: text/plain; charset='.$this->charset.$this->newline
 						.'Content-Transfer-Encoding: '.$this->_get_encoding().$this->newline.$this->newline
-						.$this->_get_alt_message().$this->newline.$this->newline.'--'.$this->_alt_boundary.$this->newline
+						.$this->_get_alt_message().$this->newline.$this->newline
+						.'--'.$boundary.$this->newline
 
 						.'Content-Type: text/html; charset='.$this->charset.$this->newline
 						.'Content-Transfer-Encoding: quoted-printable'.$this->newline.$this->newline;
@@ -1380,14 +1348,15 @@ class CI_Email {
 
 				if ($this->send_multipart !== FALSE)
 				{
-					$this->_finalbody .= '--'.$this->_alt_boundary.'--';
+					$this->_finalbody .= '--'.$boundary.'--';
 				}
 
 				return;
 
-			case 'plain-attach' :
+			case 'plain-attach':
 
-				$hdr .= 'Content-Type: multipart/'.$this->multipart.'; boundary="'.$this->_atc_boundary.'"';
+				$boundary = uniqid('B_ATC_');
+				$hdr .= 'Content-Type: multipart/mixed; boundary="'.$boundary.'"';
 
 				if ($this->_get_protocol() === 'mail')
 				{
@@ -1396,64 +1365,139 @@ class CI_Email {
 
 				$body .= $this->_get_mime_message().$this->newline
 					.$this->newline
-					.'--'.$this->_atc_boundary.$this->newline
+					.'--'.$boundary.$this->newline
 					.'Content-Type: text/plain; charset='.$this->charset.$this->newline
 					.'Content-Transfer-Encoding: '.$this->_get_encoding().$this->newline
 					.$this->newline
 					.$this->_body.$this->newline.$this->newline;
 
-			break;
-			case 'html-attach' :
+				$this->_append_attachments($body, $boundary);
 
-				$hdr .= 'Content-Type: multipart/'.$this->multipart.'; boundary="'.$this->_atc_boundary.'"';
+				break;
+			case 'html-attach':
+
+				$alt_boundary = uniqid('B_ALT_');
+				$last_boundary = NULL;
+
+				if ($this->_attachments_have_multipart('mixed'))
+				{
+					$atc_boundary = uniqid('B_ATC_');
+					$hdr .= 'Content-Type: multipart/mixed; boundary="'.$atc_boundary.'"';
+					$last_boundary = $atc_boundary;
+				}
+
+				if ($this->_attachments_have_multipart('related'))
+				{
+					$rel_boundary = uniqid('B_REL_');
+					$rel_boundary_header = 'Content-Type: multipart/related; boundary="'.$rel_boundary.'"';
+
+					if (isset($last_boundary))
+					{
+						$body .= '--'.$last_boundary.$this->newline.$rel_boundary_header;
+					}
+					else
+					{
+						$hdr .= $rel_boundary_header;
+					}
+
+					$last_boundary = $rel_boundary;
+				}
 
 				if ($this->_get_protocol() === 'mail')
 				{
 					$this->_header_str .= $hdr;
 				}
 
+				strlen($body) && $body .= $this->newline.$this->newline;
 				$body .= $this->_get_mime_message().$this->newline.$this->newline
-					.'--'.$this->_atc_boundary.$this->newline
+					.'--'.$last_boundary.$this->newline
 
-					.'Content-Type: multipart/alternative; boundary="'.$this->_alt_boundary.'"'.$this->newline.$this->newline
-					.'--'.$this->_alt_boundary.$this->newline
+					.'Content-Type: multipart/alternative; boundary="'.$alt_boundary.'"'.$this->newline.$this->newline
+					.'--'.$alt_boundary.$this->newline
 
 					.'Content-Type: text/plain; charset='.$this->charset.$this->newline
 					.'Content-Transfer-Encoding: '.$this->_get_encoding().$this->newline.$this->newline
-					.$this->_get_alt_message().$this->newline.$this->newline.'--'.$this->_alt_boundary.$this->newline
+					.$this->_get_alt_message().$this->newline.$this->newline
+					.'--'.$alt_boundary.$this->newline
 
 					.'Content-Type: text/html; charset='.$this->charset.$this->newline
 					.'Content-Transfer-Encoding: quoted-printable'.$this->newline.$this->newline
 
 					.$this->_prep_quoted_printable($this->_body).$this->newline.$this->newline
-					.'--'.$this->_alt_boundary.'--'.$this->newline.$this->newline;
+					.'--'.$alt_boundary.'--'.$this->newline.$this->newline;
 
-			break;
+				if ( ! empty($rel_boundary))
+				{
+					$body .= $this->newline.$this->newline;
+					$this->_append_attachments($body, $rel_boundary, 'related');
+				}
+
+				// multipart/mixed attachments
+				if ( ! empty($atc_boundary))
+				{
+					$body .= $this->newline.$this->newline;
+					$this->_append_attachments($body, $atc_boundary, 'mixed');
+				}
+
+				break;
 		}
 
-		$attachment = array();
-		for ($i = 0, $c = count($this->_attachments), $z = 0; $i < $c; $i++)
-		{
-			$filename = $this->_attachments[$i]['name'][0];
-			$basename = ($this->_attachments[$i]['name'][1] === NULL)
-				? basename($filename) : $this->_attachments[$i]['name'][1];
-
-			$attachment[$z++] = '--'.$this->_atc_boundary.$this->newline
-				.'Content-type: '.$this->_attachments[$i]['type'].'; '
-				.'name="'.$basename.'"'.$this->newline
-				.'Content-Disposition: '.$this->_attachments[$i]['disposition'].';'.$this->newline
-				.'Content-Transfer-Encoding: base64'.$this->newline
-				.(empty($this->_attachments[$i]['cid']) ? '' : 'Content-ID: <'.$this->_attachments[$i]['cid'].'>'.$this->newline);
-
-			$attachment[$z++] = $this->_attachments[$i]['content'];
-		}
-
-		$body .= implode($this->newline, $attachment).$this->newline.'--'.$this->_atc_boundary.'--';
 		$this->_finalbody = ($this->_get_protocol() === 'mail')
 			? $body
 			: $hdr.$this->newline.$this->newline.$body;
 
 		return TRUE;
+	}
+
+	// --------------------------------------------------------------------
+
+	protected function _attachments_have_multipart($type)
+	{
+		foreach ($this->_attachments as &$attachment)
+		{
+			if ($attachment['multipart'] === $type)
+			{
+				return TRUE;
+			}
+		}
+
+		return FALSE;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Prepares attachment string
+	 *
+	 * @param	string	$body		Message body to append to
+	 * @param	string	$boundary	Multipart boundary
+	 * @param	string	$multipart	When provided, only attachments of this type will be processed
+	 * @return	string
+	 */
+	protected function _append_attachments(&$body, $boundary, $multipart = null)
+	{
+		for ($i = 0, $c = count($this->_attachments); $i < $c; $i++)
+		{
+			if (isset($multipart) && $this->_attachments[$i]['multipart'] !== $multipart)
+			{
+				continue;
+			}
+
+			$name = isset($this->_attachments[$i]['name'][1])
+				? $this->_attachments[$i]['name'][1]
+				: basename($this->_attachments[$i]['name'][0]);
+
+			$body .= '--'.$boundary.$this->newline
+				.'Content-Type: '.$this->_attachments[$i]['type'].'; name="'.$name.'"'.$this->newline
+				.'Content-Disposition: '.$this->_attachments[$i]['disposition'].';'.$this->newline
+				.'Content-Transfer-Encoding: base64'.$this->newline
+				.(empty($this->_attachments[$i]['cid']) ? '' : 'Content-ID: <'.$this->_attachments[$i]['cid'].'>'.$this->newline.$this->newline)
+				.$this->_attachments[$i]['content'].$this->newline;
+		}
+
+		// $name won't be set if no attachments were appended,
+		// and therefore a boundary wouldn't be necessary
+		empty($name) OR $body .= '--'.$boundary.'--';
 	}
 
 	// --------------------------------------------------------------------
@@ -1469,6 +1513,20 @@ class CI_Email {
 	 */
 	protected function _prep_quoted_printable($str)
 	{
+		// ASCII code numbers for "safe" characters that can always be
+		// used literally, without encoding, as described in RFC 2049.
+		// http://www.ietf.org/rfc/rfc2049.txt
+		static $ascii_safe_chars = array(
+			// ' (  )   +   ,   -   .   /   :   =   ?
+			39, 40, 41, 43, 44, 45, 46, 47, 58, 61, 63,
+			// numbers
+			48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+			// upper-case letters
+			65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
+			// lower-case letters
+			97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122
+		);
+
 		// We are intentionally wrapping so mail servers will encode characters
 		// properly and MUAs will behave, so {unwrap} must go!
 		$str = str_replace(array('{unwrap}', '{/unwrap}'), '', $str);
@@ -1516,13 +1574,24 @@ class CI_Email {
 				$ascii = ord($char);
 
 				// Convert spaces and tabs but only if it's the end of the line
-				if ($i === ($length - 1) && ($ascii === 32 OR $ascii === 9))
+				if ($ascii === 32 OR $ascii === 9)
 				{
-					$char = $escape.sprintf('%02s', dechex($ascii));
+					if ($i === ($length - 1))
+					{
+						$char = $escape.sprintf('%02s', dechex($ascii));
+					}
 				}
-				elseif ($ascii === 61) // encode = signs
+				// DO NOT move this below the $ascii_safe_chars line!
+				//
+				// = (equals) signs are allowed by RFC2049, but must be encoded
+				// as they are the encoding delimiter!
+				elseif ($ascii === 61)
 				{
 					$char = $escape.strtoupper(sprintf('%02s', dechex($ascii)));  // =3D
+				}
+				elseif ( ! in_array($ascii, $ascii_safe_chars, TRUE))
+				{
+					$char = $escape.strtoupper(sprintf('%02s', dechex($ascii)));
 				}
 
 				// If we're at the character limit, add the line to the output,
@@ -1563,11 +1632,10 @@ class CI_Email {
 
 		if ($this->charset === 'UTF-8')
 		{
-			if (MB_ENABLED === TRUE)
-			{
-				return mb_encode_mimeheader($str, $this->charset, 'Q', $this->crlf);
-			}
-			elseif (ICONV_ENABLED === TRUE)
+			// Note: We used to have mb_encode_mimeheader() as the first choice
+			//       here, but it turned out to be buggy and unreliable. DO NOT
+			//       re-add it! -- Narf
+			if (ICONV_ENABLED === TRUE)
 			{
 				$output = @iconv_mime_encode('', $str,
 					array(
@@ -1589,6 +1657,10 @@ class CI_Email {
 				}
 
 				$chars = iconv_strlen($str, 'UTF-8');
+			}
+			elseif (MB_ENABLED === TRUE)
+			{
+				$chars = mb_strlen($str, 'UTF-8');
 			}
 		}
 
@@ -1826,8 +1898,7 @@ class CI_Email {
 		// is popen() enabled?
 		if ( ! function_usable('popen')
 			OR FALSE === ($fp = @popen(
-						$this->mailpath.' -oi -f '.$this->clean_email($this->_headers['From'])
-							.' -t -r '.$this->clean_email($this->_headers['Return-Path'])
+						$this->mailpath.' -oi -f '.$this->clean_email($this->_headers['From']).' -t'
 						, 'w'))
 		) // server probably has popen disabled, so nothing we can do to get a verbose error.
 		{
