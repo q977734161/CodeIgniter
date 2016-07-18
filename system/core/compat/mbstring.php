@@ -54,7 +54,7 @@ if (MB_ENABLED === TRUE)
 {
 	return;
 }
-
+//MB_ENABLED没有启用时候要提供的函数
 // ------------------------------------------------------------------------
 
 if ( ! function_exists('mb_strlen'))
