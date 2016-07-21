@@ -378,6 +378,8 @@ class CI_Router {
 		// Loop through the route array looking for wildcards
 		foreach ($this->routes as $key => $val)
 		{
+			//$route['products/(:num)']['DELETE'] = 'product/delete/$1';
+			//使用http动词
 			// Check if route format is using HTTP verbs
 			if (is_array($val))
 			{
@@ -393,8 +395,18 @@ class CI_Router {
 			}
 
 			// Convert wildcards to RegEx
+			//将(:any)替换成([^/]+),将(:num)替换为([0-9]+)
 			$key = str_replace(array(':any', ':num'), array('[^/]+', '[0-9]+'), $key);
-
+			
+			//其他的形式
+			//$route['login/(.+)'] = 'auth/login/$1';
+			
+			// $route['products/([a-zA-Z]+)/edit/(\d+)'] = function ($product_type, $id)
+			// {
+			// 	  return 'catalog/product_edit/' . strtolower($product_type) . '/' . $id;
+			// };
+	
+			
 			// Does the RegEx match?
 			if (preg_match('#^'.$key.'$#', $uri, $matches))
 			{
