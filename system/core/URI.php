@@ -68,7 +68,12 @@ class CI_URI {
 	 * List of URI segments
 	 *
 	 * Starts at 1 instead of 0.
-	 *
+	 * 请求url的分段http://example.com/index.php/news/local/metro/crime_is_up
+	 * 	分段如下
+	 * 	#. news
+		#. local
+		#. metro
+		#. crime_is_up
 	 * @var	array
 	 */
 	public $segments = array();
@@ -77,7 +82,9 @@ class CI_URI {
 	 * List of routed URI segments
 	 *
 	 * Starts at 1 instead of 0.
-	 *
+	 * 路由之后的分段
+	 * 1=>class
+	 * 2=>method
 	 * @var	array
 	 */
 	public $rsegments = array();

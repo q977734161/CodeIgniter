@@ -179,6 +179,7 @@ class CI_Router {
 		// Are query strings enabled in the config file? Normally CI doesn't utilize query strings
 		// since URI segments are more search-engine friendly, but they can optionally be used.
 		// If this feature is enabled, we will gather the directory/class/method a little differently
+		//当$config['enable_query_strings']=true时候，去？后面的字符串匹配目录，controller和method
 		if ($this->enable_query_strings)
 		{
 			// If the directory is set at this time, it means an override exists, so skip the checks

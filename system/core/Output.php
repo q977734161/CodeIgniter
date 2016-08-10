@@ -41,7 +41,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * Output Class
  *
  * Responsible for sending final output to the browser.
- *
+ * 
  * @package		CodeIgniter
  * @subpackage	Libraries
  * @category	Output
