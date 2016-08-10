@@ -87,6 +87,14 @@ defined('BASEPATH') OR exit('No direct script access allowed');
  * ------------------------------------------------------
  * Security procedures
  * ------------------------------------------------------
+ * 
+ * 
+ * 在系统初始化期间，如果发现任何 $_GET、$_POST、$_REQUEST 和 $_COOKIE 数组中的键值变成了全局变量，则删除该变量。这个过程和设置 register_globals = off 效果是一样的
+ * 
+ * 
+ * 
+ * 
+ * 
  */
 
 if ( ! is_php('5.4'))
@@ -478,11 +486,12 @@ if ( ! is_php('5.4'))
 	else
 	{
 		require_once(APPPATH.'controllers/'.$RTR->directory.$class.'.php');
-
+		//如果类不存在或者方法的第一个字符串为_或者CI_Controller类中存在该方法，则报错404
 		if ( ! class_exists($class, FALSE) OR $method[0] === '_' OR method_exists('CI_Controller', $method))
 		{
 			$e404 = TRUE;
 		}
+		//如果用户定义的类中有_remap方法，则设置此次访问的方法为_remap,方法的参数也要做做修改
 		elseif (method_exists($class, '_remap'))
 		{
 			$params = array($method, array_slice($URI->rsegments, 2));
@@ -492,6 +501,7 @@ if ( ! is_php('5.4'))
 		// Furthermore, there are bug reports and feature/change requests related to it
 		// that make it unreliable to use in this context. Please, DO NOT change this
 		// work-around until a better alternative is available.
+		//查找该类的方法里面是否有该方法
 		elseif ( ! in_array(strtolower($method), array_map('strtolower', get_class_methods($class)), TRUE))
 		{
 			$e404 = TRUE;
@@ -500,15 +510,17 @@ if ( ! is_php('5.4'))
 
 	if ($e404)
 	{
+		//如果类和方法未找到，查看配置文件中是否设置了404处理方法
 		if ( ! empty($RTR->routes['404_override']))
 		{
+			//sscanf使用指定格式读取404处理方法，如果指定了类而没有指定方法设置处理方法为index
 			if (sscanf($RTR->routes['404_override'], '%[^/]/%s', $error_class, $error_method) !== 2)
 			{
 				$error_method = 'index';
 			}
 
 			$error_class = ucfirst($error_class);
-
+			//判断404处理的类与方法是否存在
 			if ( ! class_exists($error_class, FALSE))
 			{
 				if (file_exists(APPPATH.'controllers/'.$RTR->directory.$error_class.'.php'))
@@ -531,7 +543,7 @@ if ( ! is_php('5.4'))
 				$e404 = FALSE;
 			}
 		}
-
+		//如果404处理方法和类存在则设置当前类方法为404处理类和方法否则使用框架默认的处理方法
 		// Did we reset the $e404 flag? If so, set the rsegments, starting from index 1
 		if ( ! $e404)
 		{
